@@ -1,5 +1,5 @@
 Pod::Spec.new do |s|
-  s.name         = "JustTransloadit"
+  s.name         = "JustTransloadit-iOS"
   s.version      = "0.0.2"
   s.summary      = "A simple library for Transloadit."
   s.description  = <<-DESC

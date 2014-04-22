@@ -12,7 +12,7 @@ A simple implmentation for the Transloadit API
 Clone the repository and drop in the .h and .m files from the "Classes" directory into your project.
 
 ### CocoaPods
-Promises is available through [CocoaPods](http://cocoapods.org), to install
+JustTransloadit-iOS is available through [CocoaPods](http://cocoapods.org), to install
 it simply add the following line to your Podfile:
 
     pod 'JustTransloadit-iOS', :git => 'https://github.com/joshdholtz/JustTransloadit-iOS.git'
