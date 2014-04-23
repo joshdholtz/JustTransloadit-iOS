@@ -30,8 +30,14 @@ NSString *templateId = @"<your-template-id>";
 NSData *imageData = UIImageJPEGRepresentation(self.imageToUpload, 0.6f);
 NSString *mimeType = @"image/jpg";
 
-// Create your TransloaditRequestOperation by passing in your awesome data from above
+// Create your TransloaditRequestOperation (its a subclass of AFHTTPRequestOperation) by passing in your awesome data from above
 TransloaditRequestOperation *requestOperation = [[TransloaditRequestOperation alloc] initWithKey:key withTemplateId:templateId withData:imageData withMimeType:mimeType];
+
+// Set the upload progress block
+[requestOperation setUploadProgressBlock:^(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite) {
+    CGFloat progress = (float)totalBytesWritten / (float)totalBytesExpectedToWrite;
+    NSLog(@"Progress - %f", progress);
+}];
 
 // Set the completion blocks - cause this is what its all about
 [requestOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
