@@ -60,12 +60,27 @@
     NSString *key = @"<your-key>";
     NSString *templateId = @"<your-template-id>";
 
-    TransloaditRequestOperation *requestOperation = [[TransloaditRequestOperation alloc] initWithKey:key withTemplateId:templateId withData:UIImageJPEGRepresentation(self.imageToUpload, 0.6f) withMimeType:@"image/jpg"];
+    // Create your data and mime type (we are using an image here)
+    NSData *imageData = UIImageJPEGRepresentation(self.imageToUpload, 0.6f);
+    NSString *mimeType = @"image/jpg";
+    
+    // Create your TransloaditRequestOperation (its a subclass of AFHTTPRequestOperation) by passing in your awesome data from above
+    TransloaditRequestOperation *requestOperation = [[TransloaditRequestOperation alloc] initWithKey:key withTemplateId:templateId withData:imageData withMimeType:mimeType];
+    
+    // Set the upload progress block
+    [requestOperation setUploadProgressBlock:^(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite) {
+        CGFloat progress = (float)totalBytesWritten / (float)totalBytesExpectedToWrite;
+        NSLog(@"Progress - %f", progress);
+    }];
+    
+    // Set the completion blocks - cause this is what its all about
     [requestOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
         NSLog(@"Success - %@", responseObject);
     } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
         NSLog(@"Error - %@", error);
     }];
+    
+    // Add the operation to the queue to get things going
     [[NSOperationQueue mainQueue] addOperation:requestOperation];
     
     NSLog(@"Started upload");
