@@ -14,17 +14,20 @@
 
 #import <AFNetworking/AFNetworking.h>
 
+typedef void(^SuccessBlock) (AFHTTPRequestOperation* operation, id responseObject);
+typedef void(^FailureBlock) (AFHTTPRequestOperation* operation, NSError* error);
+
 @interface TransloaditRequestOperation ()
 
-@property (nonatomic) int tries;
-@property (copy) void(^success) (AFHTTPRequestOperation*, id);
-@property (copy) void(^failure) (AFHTTPRequestOperation*, NSError*);
+@property (nonatomic, assign) NSInteger tries;
+@property (nonatomic, copy) SuccessBlock successBlock;
+@property (nonatomic, copy) FailureBlock failureBlock;
 
 @end
 
 @implementation TransloaditRequestOperation
 
-- (instancetype)initWithKey:(NSString*)key withTemplateId:(NSString*)templateId withData:(NSData*)data withMimeType:(NSString*)mimeType waitUntilExecuted:(BOOL)wait withSuccess:(void(^)(AFHTTPRequestOperation*, id))success withFailure:(void(^)(AFHTTPRequestOperation*, NSError*))failure{
+- (instancetype)initWithKey:(NSString*)key withTemplateId:(NSString*)templateId withData:(NSData*)data withMimeType:(NSString*)mimeType {
     NSDictionary *params = @{
                              @"auth" : @{ @"key" : key },
                              @"template_id" : templateId
@@ -37,48 +40,52 @@
         
     } error:&error];
     
+    self.wait = NO;
+    self.delayInterval = kPollInterval;
+    self.numTries =  kNumTries;
+    
     self = [super initWithRequest:request];
     if (self) {
         [self setResponseSerializer:[AFJSONResponseSerializer serializer]];
-        self.tries = 0;
-        self.wait = wait;
-        
-        [self setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-            NSLog(@"SUCCESS");
-            if(self.wait) {
-                [self pollAssembly:[responseObject valueForKey:@"assembly_url"]];
-            }else {
-                self.success(operation, responseObject);
-            }
-            
-        } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-            self.failure(operation, error);
-        }];
     }
     
     return self;
 }
 
+- (void) setCompletionBlockWithSuccess:(void (^)(AFHTTPRequestOperation *, id))success failure:(void (^)(AFHTTPRequestOperation *, NSError *))failure {
+    self.successBlock = success;
+    self.failureBlock = failure;
+    
+    __block __weak TransloaditRequestOperation *this = self;
+    [super setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        if(this.wait) {
+            [this pollAssembly:[responseObject valueForKey:@"assembly_url"]];
+        }else {
+            this.successBlock(operation, responseObject);
+        }
+    }failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        this.failureBlock(operation, error);
+    }];
+}
+
 - (void)pollAssembly:(NSString *)url {
-    NSLog(@"POLLING");
     AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
     [manager GET:url parameters:nil success:^(AFHTTPRequestOperation *operation, id response) {
         self.tries++;
-        NSLog(@"Poll Success - %@", response);
         if([[response valueForKey:@"ok"] isEqualToString:@"ASSEMBLY_COMPLETED"]) {
-            self.success(operation, response);
+            self.successBlock(operation, response);
         }else {
-            if(self.tries < kNumTries) {
+            if(self.tries < self.numTries) {
                 [self performSelector:@selector(pollAssembly:) withObject:url afterDelay:kPollInterval];
             }else {
                 NSDictionary *details = [NSMutableDictionary dictionary];
                 [details setValue:@"Exceeded Number Of Requests" forKey:NSLocalizedDescriptionKey];
-                self.failure(operation, [NSError errorWithDomain:@"TransloaditRequestOperation" code:200 userInfo:details]);
+                self.failureBlock(operation, [NSError errorWithDomain:@"TransloaditRequestOperation" code:200 userInfo:details]);
             }
         }
         
     } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-        self.failure(operation, error);
+        self.failureBlock(operation, error);
     }];
 }
 

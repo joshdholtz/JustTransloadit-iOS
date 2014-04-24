@@ -57,24 +57,29 @@
 
 - (IBAction)onClickUpload:(id)sender {
     
-    NSString *key = @"<api-key>";
-    NSString *templateId = @"<template-id-key>";
+    NSString *key = @"b07b5b60ca2211e3a7608df660eff3ec";
+    NSString *templateId = @"3490ae50ca2311e3816b1d6c4b95fef4";
 
     // Create your data and mime type (we are using an image here)
     NSData *imageData = UIImageJPEGRepresentation(self.imageToUpload, 0.6f);
     NSString *mimeType = @"image/jpg";
     
     // Create your TransloaditRequestOperation (its a subclass of AFHTTPRequestOperation) by passing in your awesome data from above
-    TransloaditRequestOperation *requestOperation = [[TransloaditRequestOperation alloc] initWithKey:key withTemplateId:templateId withData:imageData withMimeType:mimeType waitUntilExecuted:YES withSuccess:^(AFHTTPRequestOperation * operation, id responseObject) {
-        NSLog(@"Success - %@", responseObject);
-    } withFailure:^(AFHTTPRequestOperation * operation, NSError *error) {
-        NSLog(@"Error - %@", error);
-    }];
+    TransloaditRequestOperation *requestOperation = [[TransloaditRequestOperation alloc] initWithKey:key withTemplateId:templateId withData:imageData withMimeType:mimeType];
+    [requestOperation setWait:YES];
+    [requestOperation setDelayInterval: 1];
     
     // Set the upload progress block
     [requestOperation setUploadProgressBlock:^(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite) {
         CGFloat progress = (float)totalBytesWritten / (float)totalBytesExpectedToWrite;
         NSLog(@"Progress - %f", progress);
+    }];
+    
+    // Set the completion blocks - cause this is what its all about
+    [requestOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        NSLog(@"Success - %@", responseObject);
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        NSLog(@"Error - %@", error);
     }];
     
     // Add the operation to the queue to get things going
