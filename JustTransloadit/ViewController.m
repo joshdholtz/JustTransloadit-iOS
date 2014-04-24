@@ -57,8 +57,8 @@
 
 - (IBAction)onClickUpload:(id)sender {
     
-    NSString *key = @"<your-key>";
-    NSString *templateId = @"<your-template-id>";
+    NSString *key = @"b07b5b60ca2211e3a7608df660eff3ec";
+    NSString *templateId = @"3490ae50ca2311e3816b1d6c4b95fef4";
 
     // Create your data and mime type (we are using an image here)
     NSData *imageData = UIImageJPEGRepresentation(self.imageToUpload, 0.6f);
@@ -66,6 +66,8 @@
     
     // Create your TransloaditRequestOperation (its a subclass of AFHTTPRequestOperation) by passing in your awesome data from above
     TransloaditRequestOperation *requestOperation = [[TransloaditRequestOperation alloc] initWithKey:key withTemplateId:templateId withData:imageData withMimeType:mimeType];
+    [requestOperation setWait:YES];
+    [requestOperation setDelayInterval: 1];
     
     // Set the upload progress block
     [requestOperation setUploadProgressBlock:^(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite) {

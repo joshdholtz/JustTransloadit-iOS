@@ -10,6 +10,10 @@
 
 @interface TransloaditRequestOperation : AFHTTPRequestOperation
 
+@property (nonatomic, assign) BOOL wait;
+@property (nonatomic, assign) NSInteger delayInterval;
+@property (nonatomic, assign) NSInteger numTries;
+
 - (instancetype)initWithKey:(NSString*)key withTemplateId:(NSString*)templateId withData:(NSData*)data withMimeType:(NSString*)mimeType;
 
 @end
