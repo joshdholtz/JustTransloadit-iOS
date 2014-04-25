@@ -65,9 +65,7 @@
     NSString *mimeType = @"image/jpg";
     
     // Create your TransloaditRequestOperation (its a subclass of AFHTTPRequestOperation) by passing in your awesome data from above
-    TransloaditRequestOperation *requestOperation = [[TransloaditRequestOperation alloc] initWithKey:key withTemplateId:templateId withData:imageData withMimeType:mimeType];
-    [requestOperation setWait:YES];
-    [requestOperation setDelayInterval: 1];
+    TransloaditRequestOperation *requestOperation = [TransloaditRequestOperation assemblyPOST:key withTemplateId:templateId withData:imageData withMimeType:mimeType];
     
     // Set the upload progress block
     [requestOperation setUploadProgressBlock:^(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite) {
@@ -77,9 +75,23 @@
     
     // Set the completion blocks - cause this is what its all about
     [requestOperation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-        NSLog(@"Success - %@", responseObject);
+//        NSLog(@"POST Success - %@", responseObject);
+        
+        NSString *assemblyUrl = [responseObject objectForKey:@"assembly_url"];
+        
+        // Poll for result
+        TransloaditRequestOperation *pollRequest = [TransloaditRequestOperation assemblyGET:assemblyUrl withPollInterval:5 withMaxTries:5];
+        [pollRequest setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+            NSLog(@"POLL Success - %@", responseObject);
+        } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+            NSLog(@"POLL Error - %@", error);
+        }];
+        
+        // Add the operation to the queue to get things going
+        [[NSOperationQueue mainQueue] addOperation:pollRequest];
+        
     } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-        NSLog(@"Error - %@", error);
+        NSLog(@"POST Error - %@", error);
     }];
     
     // Add the operation to the queue to get things going
