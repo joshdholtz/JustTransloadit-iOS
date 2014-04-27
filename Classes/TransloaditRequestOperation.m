@@ -7,14 +7,75 @@
 //
 
 #define kUrlAssemply @"http://api2.transloadit.com/assemblies"
+#define kPollInterval 8
+#define kNumTries 3
 
 #import "TransloaditRequestOperation.h"
 
 #import <AFNetworking/AFNetworking.h>
 
+typedef void(^TransloadidSuccessBlock) (AFHTTPRequestOperation* operation, id responseObject);
+typedef void(^TransloadidFailureBlock) (AFHTTPRequestOperation* operation, NSError* error);
+
+@interface TransloaditPollRequestOperation ()
+
+@property (nonatomic, assign) BOOL wait;
+@property (nonatomic, assign) NSInteger delayInterval;
+@property (nonatomic, assign) NSInteger numTries;
+
+@property (nonatomic, assign) NSInteger tries;
+@property (nonatomic, copy) TransloadidSuccessBlock successBlock;
+@property (nonatomic, copy) TransloadidFailureBlock failureBlock;
+
+- (void)setPollInterval:(NSInteger)pollInterval withMaxTries:(NSInteger)maxTries;
+
+@end
+
+@interface TransloaditRequestOperation ()
+
+@end
+
+#pragma mark - TransloaditRequestOperation
+
 @implementation TransloaditRequestOperation
 
-- (instancetype)initWithKey:(NSString*)key withTemplateId:(NSString*)templateId withData:(NSData*)data withMimeType:(NSString*)mimeType {
+- (instancetype)initWithRequest:(NSURLRequest *)urlRequest {
+    self = [super initWithRequest:urlRequest];
+    if (self) {
+        [self setResponseSerializer:[AFJSONResponseSerializer serializer]];
+    }
+    return self;
+}
+
+#pragma mark - Assembly
+
+// GET an assembly
++ (instancetype)assemblyGET:(NSString*)url {
+    return [self assemblyGET:url withPollInterval:0 withMaxTries:0];
+}
+
+// GET an assembly and poll
++ (instancetype)assemblyGET:(NSString*)url withPollInterval:(NSInteger)pollInterval withMaxTries:(NSInteger)maxTries {
+
+    NSError *error;
+    NSURLRequest *request = [[AFHTTPRequestSerializer serializer] requestWithMethod:@"GET" URLString:url parameters:nil error:&error];
+    
+    if (maxTries > 0) {
+        TransloaditPollRequestOperation *pollOperation = [[TransloaditPollRequestOperation alloc] initWithRequest:request];
+        [pollOperation setPollInterval:pollInterval withMaxTries:maxTries];
+        return pollOperation;
+    }
+
+    return [[self alloc] initWithRequest:request];
+}
+
+// POST an assembly
++ (instancetype)assemblyPOST:(NSString*)key withTemplateId:(NSString*)templateId withData:(NSData*)data withMimeType:(NSString*)mimeType {
+    return [self assemblyPOST:key withTemplateId:templateId withData:data withMimeType:mimeType withPollInterval:0 withMaxTries:0];
+}
+
+// POST an assembly and poll
++ (instancetype)assemblyPOST:(NSString*)key withTemplateId:(NSString*)templateId withData:(NSData*)data withMimeType:(NSString*)mimeType withPollInterval:(NSInteger)pollInterval withMaxTries:(NSInteger)maxTries {
     NSDictionary *params = @{
                              @"auth" : @{ @"key" : key },
                              @"template_id" : templateId
@@ -27,17 +88,70 @@
         
     } error:&error];
     
-    self = [super initWithRequest:request];
-    if (self) {
-        [self setResponseSerializer:[AFJSONResponseSerializer serializer]];
+    if (maxTries > 0) {
+        TransloaditPollRequestOperation *pollOperation = [[TransloaditPollRequestOperation alloc] initWithRequest:request];
+        [pollOperation setPollInterval:pollInterval withMaxTries:maxTries];
+        return pollOperation;
     }
     
-    return self;
+    return [[self alloc] initWithRequest:request];
 }
 
-- (NSString*)toJson:(id)json {
+#pragma mark - Helpers
+
++ (NSString*)toJson:(id)json {
     NSData *data = [NSJSONSerialization dataWithJSONObject:json options:0 error:nil];
     return [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+}
+
+@end
+
+#pragma mark - TransloaditPollRequestOperation
+
+@implementation TransloaditPollRequestOperation
+
+- (void)setCompletionBlockWithSuccess:(void (^)(AFHTTPRequestOperation *, id))success failure:(void (^)(AFHTTPRequestOperation *, NSError *))failure {
+    self.successBlock = success;
+    self.failureBlock = failure;
+    
+    __weak TransloaditPollRequestOperation *this = self;
+    [super setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+        if(this.wait) {
+            [this pollAssembly:[responseObject valueForKey:@"assembly_url"]];
+        }else {
+            this.successBlock(operation, responseObject);
+        }
+    }failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        this.failureBlock(operation, error);
+    }];
+}
+
+- (void)setPollInterval:(NSInteger)pollInterval withMaxTries:(NSInteger)maxTries {
+    [self setWait:YES];
+    [self setDelayInterval:pollInterval];
+    [self setNumTries:maxTries];
+}
+
+- (void)pollAssembly:(NSString *)url {
+    AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
+    [manager GET:url parameters:nil success:^(AFHTTPRequestOperation *operation, id response) {
+        NSLog(@"Tries - %d", self.tries);
+        self.tries++;
+        if([[response valueForKey:@"ok"] isEqualToString:@"ASSEMBLY_COMPLETED"]) {
+            self.successBlock(operation, response);
+        }else {
+            if(self.tries < self.numTries) {
+                [self performSelector:@selector(pollAssembly:) withObject:url afterDelay:kPollInterval];
+            }else {
+                NSDictionary *details = [NSMutableDictionary dictionary];
+                [details setValue:@"Exceeded Number Of Requests" forKey:NSLocalizedDescriptionKey];
+                self.failureBlock(operation, [NSError errorWithDomain:@"TransloaditRequestOperation" code:200 userInfo:details]);
+            }
+        }
+        
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        self.failureBlock(operation, error);
+    }];
 }
 
 @end

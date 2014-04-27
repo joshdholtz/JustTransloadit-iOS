@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>112DDCEF-DEE8-4359-86EF-58EC161CC546</string>
+	<key>IDESourceControlProjectName</key>
+	<string>JustTransloadit</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>09856E96-1B8E-4013-BEF8-0C19DB0E8C06</key>
+		<string>ssh://github.com/joshdholtz/JustTransloadit-iOS.git</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>JustTransloadit.xcworkspace</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>09856E96-1B8E-4013-BEF8-0C19DB0E8C06</key>
+		<string>..</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>ssh://github.com/joshdholtz/JustTransloadit-iOS.git</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>110</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>09856E96-1B8E-4013-BEF8-0C19DB0E8C06</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>09856E96-1B8E-4013-BEF8-0C19DB0E8C06</string>
+			<key>IDESourceControlWCCName</key>
+			<string>JustTransloadit</string>
+		</dict>
+	</array>
+</dict>
+</plist>
